@@ -1,0 +1,15 @@
+[Unit]
+Description=mactelnetd
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/mactelnet-server
+ExecStart=/usr/sbin/mactelnetd $DAEMON_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
+Alias=mactelnetd.service

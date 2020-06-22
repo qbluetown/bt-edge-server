@@ -1,0 +1,13 @@
+[Unit]
+Description=Kiwix
+After=network.target
+
+[Service]
+ExecStart=/bin/sh -c '/kiwix/kiwix-serve /kiwix/content/*.zim'
+Restart=on-failure
+#User=kiwix
+#Group=kiwix
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,94 @@
+d-i preseed/late_command string \
+	echo "tmpfs /tmp tmpfs defaults 0 0"		>>/target/etc/fstab ; \
+	echo "LABEL=DATA	/data		auto	defaults		0	0" >>/target/etc/fstab ; \
+	in-target sed -i 's/^GRUB_TIMEOUT_STYLE=/#&/' /etc/default/grub ; \
+	in-target sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/g' /etc/default/grub ; \
+	in-target sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL="console serial"/g' /etc/default/grub ; \
+	in-target sed -i '/GRUB_DISTRIBUTOR=.*/i\\GRUB_RECORDFAIL_TIMEOUT=10' /etc/default/grub ; \
+	in-target apt install -y grub-efi-amd64-bin grub-pc-bin ; \
+	in-target grub-install --target=i386-pc /dev/sda ; \
+	in-target grub-install --target=x86_64-efi /dev/sda ; \
+	in-target update-grub ; \
+	in-target sgdisk -c 1:"BIOS boot partition" /dev/sda ; \
+	in-target sgdisk -t 2:ef00 -c 2:"EFI System" /dev/sda ; \
+	in-target sgdisk -c 3:"Linux LVM" /dev/sda ; \
+	in-target btrfs fi resize 10g / ; \
+	lvresize -L 20g -f /dev/system/root ; \
+	lvcreate -l100%FREE -n data system ; \
+	in-target btrfs fi resize max / ; \
+	in-target mkfs.btrfs -L DATA /dev/system/data ; \
+	in-target sed -i "s/XKBMODEL=\"[a-z]*\"/XKBMODEL=\"pc105\"/g" /etc/default/keyboard ; \
+	in-target sed -i "s/XKBLAYOUT=\"[a-z]*\"/XKBLAYOUT=\"dk\"/g" /etc/default/keyboard ; \
+	in-target sed -i "s/XKBVARIANT=\"[a-z]*\"/XKBVARIANT=\"\"/g" /etc/default/keyboard ; \
+	in-target sed -i "s/XKBOPTIONS=\"[a-z]*\"/XKBOPTIONS=\"\"/g" /etc/default/keyboard ; \
+	in-target sed -i "s/BACKSPACE=\"[a-z]*\"/BACKSPACE=\"guess\"/g" /etc/default/keyboard ; \
+	in-target dpkg-reconfigure -fnoninteractive keyboard-configuration ; \
+	in-target update-locale LC_TIME=en_GB.UTF-8 LC_MESSAGES=POSIX ; \
+	in-target sed -i 's/HISTSIZE=.*/HISTSIZE=100000/g' /home/ubuntu/.bashrc ; \
+	in-target sed -i 's/HISTFILESIZE=.*/HISTFILESIZE=200000/g' /home/ubuntu/.bashrc ; \
+	in-target sed -i '/HISTSIZE=.*/i\\HISTTIMEFORMAT="%Y-%m-%d %T "' /home/ubuntu/.bashrc ; \
+	in-target mkdir -m 700 /home/ubuntu/.ssh ; \
+	in-target touch /home/ubuntu/.ssh/authorized_keys ; \
+        echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDBTCmq+BSJX6haHyB7bMK8XMFPVerXzPHsgG0icIczNDo+P2cSlK7QHEzRiCqOtp9VS6P3gLri0DokZ/49T57NdklKVOWs7DT1la1kdoPyqmbVumBZ5FPzdSnrfGDCwV5gEexQ/5Q9gueeTvlgm16F0Re4ZuxENfXmBmC8K5UsVImYJ5/ehsOnvb4vFMewTNzvBDqAbR9nbraVLFqTSbC+AnR9yYIhte9N6ZOyv288POdDlTrNnThtcqbNgkWx3nktH5Tr/PIGmfnTOAxFE5/mzlvvF5zr4aIQ52Iey8/Oo0+wLBUm889t9ZBF8uN0LLOKOCmX/gMuRZ7W2K7nMOxj Quinn Plattel - q@bluetown.com" >>/target/home/ubuntu/.ssh/authorized_keys ; \
+        echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >/target/etc/sudoers.d/ubuntu ; \
+        chmod 440 /target/etc/sudoers.d/ubuntu ; \
+	in-target chown -R ubuntu: /home/ubuntu/.ssh ; \
+	in-target sed -i "s/timeout 300;/timeout 10;/g" /etc/dhcp/dhclient.conf ; \
+	echo "# The loopback network interface"		 >/target/etc/network/interfaces ; \
+	echo "auto lo"					>>/target/etc/network/interfaces ; \
+	echo "iface lo inet loopback"			>>/target/etc/network/interfaces ; \
+	echo ""						>>/target/etc/network/interfaces ; \
+	echo "auto br0"					>>/target/etc/network/interfaces ; \
+	echo "iface br0 inet dhcp"			>>/target/etc/network/interfaces ; \
+	echo "   bridge_ports eth0 eth1"		>>/target/etc/network/interfaces ; \
+	echo "#   bridge_ports eth0"			>>/target/etc/network/interfaces ; \
+	echo "   bridge_stp off"			>>/target/etc/network/interfaces ; \
+	echo ""						>>/target/etc/network/interfaces ; \
+	echo "# VLAN 100: Customer Network"		>>/target/etc/network/interfaces ; \
+	echo "auto br0.100"				>>/target/etc/network/interfaces ; \
+	echo "iface br0.100 inet dhcp"			>>/target/etc/network/interfaces ; \
+	echo "   vlan-raw-device br0"			>>/target/etc/network/interfaces ; \
+	echo ""						>>/target/etc/network/interfaces ; \
+	echo "auto br100"				>>/target/etc/network/interfaces ; \
+	echo "iface br100 inet manual"			>>/target/etc/network/interfaces ; \
+	echo "   bridge_ports br0.100"			>>/target/etc/network/interfaces ; \
+	echo ""						>>/target/etc/network/interfaces ; \
+	echo "# VLAN 110: Management Network"		>>/target/etc/network/interfaces ; \
+	echo "auto br0.110"				>>/target/etc/network/interfaces ; \
+	echo "iface br0.110 inet dhcp"			>>/target/etc/network/interfaces ; \
+	echo "   vlan-raw-device br0"			>>/target/etc/network/interfaces ; \
+	echo ""						>>/target/etc/network/interfaces ; \
+	echo "auto br110"				>>/target/etc/network/interfaces ; \
+	echo "iface br110 inet manual"			>>/target/etc/network/interfaces ; \
+	echo "   bridge_ports br0.110"			>>/target/etc/network/interfaces ; \
+	in-target apt install -y ifupdown bridge-utils vlan
+
+	#echo "LABEL=LXD	/lxd		auto	defaults,compress	0	0" >>/target/etc/fstab ; \
+	#echo "/lxd/image-archive /var/snap/lxd/common/lxd/images none bind	 0	0" >>/target/etc/fstab ; \
+	#lvcreate -l100%FREE -n lxd system ; \
+	#in-target mkfs.btrfs -L LXD /dev/system/lxd ; \
+	#in-target apt purge lxd lxd-client lxcfs liblxc1 liblxc-common ; \
+	#in-target apt install -y snapd ; \
+	#in-target bash -c "snap install lxd 2>/home/ubuntu/error.txt 1>/home/ubuntu/stdoi.txt" ; \
+	#in-target bash -c "mkdir /lxd; mount /lxd ; mkdir /lxd/image-archive" ; \
+	#echo "config:"                            >/target/tmp/preseed.yaml ; \
+	#echo "  core.https_address: '[::]:8443'" >>/target/tmp/preseed.yaml ; \
+	#echo "  core.trust_password: password"   >>/target/tmp/preseed.yaml ; \
+	#echo "networks: []"			 >>/target/tmp/preseed.yaml ; \
+	#echo "storage_pools: []"		 >>/target/tmp/preseed.yaml ; \
+	#echo "profiles:"			 >>/target/tmp/preseed.yaml ; \
+	#echo "- config: {}"			 >>/target/tmp/preseed.yaml ; \
+	#echo '  description: ""'		 >>/target/tmp/preseed.yaml ; \
+	#echo "  devices:"			 >>/target/tmp/preseed.yaml ; \
+	#echo "    eth0:"			 >>/target/tmp/preseed.yaml ; \
+	#echo "      name: eth0"			 >>/target/tmp/preseed.yaml ; \
+	#echo "      nictype: bridged"		 >>/target/tmp/preseed.yaml ; \
+	#echo "      parent: br0"		 >>/target/tmp/preseed.yaml ; \
+	#echo "      type: nic"			 >>/target/tmp/preseed.yaml ; \
+	#echo "  name: default"			 >>/target/tmp/preseed.yaml ; \
+	#echo "cluster: null"			 >>/target/tmp/preseed.yaml ; \
+	#in-target bash -c "cat /tmp/preseed.yaml | lxd init --preseed" ; \
+	#in-target lxc storage create pool1 lvm source=/dev/system/lxd ; \
+	#in-target lxc profile device add default root disk path=/ pool=pool1 ; \
+	#in-target lxc config set backups.compression_algorithm pigz ; \
+	#in-target lxc config set images.compression_algorithm pigz ; \
