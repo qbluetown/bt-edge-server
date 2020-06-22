@@ -1,2 +1,2 @@
-# bt-edge-server
-BlueTown edge server
+# bt_edge_server
+BlueTown Edge server config files

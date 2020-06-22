@@ -1,0 +1,62 @@
+d-i partman/alignment string "optimal"
+d-i partman/choose_partition select finish
+#d-i partman-auto/choose_recipe select boot-root
+d-i partman/confirm_write_new_label boolean true
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman/early_command string debconf-set partman-auto/disk "$(list-devices disk | head -n1)"
+d-i partman/mount_style select label
+d-i partman/unmount_active boolean true
+d-i partman-auto/method string lvm
+d-i partman-auto/purge_lvm_from_device boolean true
+d-i partman-auto-lvm/guided_size string max
+d-i partman-auto-lvm/new_vg_name string system
+d-i partman-auto-lvm/no_boot boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/device_remove_lvm_span boolean true
+d-i partman-md/device_remove_md boolean true
+#d-i partman-auto/expert_recipe string            \
+#   boot-root ::                                  \
+#      1024 10 100% linux-swap                    \
+#         $lvmok{ }                               \
+#         lv_name{ swap }                         \
+#         method{ swap } format{ }                \
+#         label{ SWAP }                           \
+#      .                                          \
+#      4096 9 -1 free                             \
+#         $lvmok{ }                               \
+#         lv_name{ root }                         \
+#         method{ format } format{ }              \
+#         use_filesystem{ } filesystem{ btrfs }   \
+#         label{ ROOT }                           \
+#         mountpoint{ / }                         \
+#      .
+
+# Add the following section just after "::" to create a fat
+# partition for EFI systems using MBR partitioning.
+# Note 1: Change partition id to 0xef afterwards.
+# Note 2: This will convert partitions after this one to logical volumes!!!!
+#      10 10 10 free                              \
+#         $primary{ }                             \
+#         method{ format } format{ }              \
+#         use_filesystem{ } filesystem{ fat16 }   \
+#         mountpoint{ /boot/efi }                 \
+#      .                                          \
+
+# For GPT/EFI systems:
+d-i partman/choose_label string gpt
+d-i partman/default_label string gpt
+d-i partman-basicfilesystems/choose_label string gpt
+d-i partman-basicfilesystems/default_label string gpt
+d-i partman-partitioning/choose_label string gpt
+d-i partman-partitioning/default_label string gpt
+d-i partman-auto/expert_recipe string		\
+   boot-root ::					\
+	1       1     1 free       method{ biosgrub } . \
+	10     10    10 fat16      method{ efi }    format{ } mountpoint{ /boot/efi } . \
+	1076 1076  1076 linux-swap method{ swap }   format{ }                         $lvmok{ } lv_name{ swap } label{ SWAP } . \
+	4148 4148    -1 btrfs      method{ format } format{ } mountpoint{ / }         $lvmok{ } lv_name{ root } label{ ROOT } use_filesystem{ } filesystem{ btrfs } .
+#	4148 4148  4148 btrfs      method{ format } format{ } mountpoint{ /data }     $lvmok{ } lv_name{ data } label{ DATA } use_filesystem{ } filesystem{ btrfs } .
+#	4148 4148  4148 btrfs      method{ format } format{ } mountpoint{ /lxc }      $lvmok{ } lv_name{ lxc }  label{ LXC }  use_filesystem{ } filesystem{ btrfs } .

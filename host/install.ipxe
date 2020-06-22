@@ -1,0 +1,18 @@
+#!ipxe
+
+# Check if interface is already up and use existing setup:
+ifopen && isset ${ip} || dhcp
+
+# Force to get new dhcp values:
+#dhcp
+
+kernel http://archive.ubuntu.com/ubuntu/dists/bionic/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/linux || shell
+initrd http://archive.ubuntu.com/ubuntu/dists/bionic/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/initrd.gz || shell
+imgargs linux DEBCONF_DEBUG=5 nomodeset --
+initrd /preseed.cfg preseed.cfg
+#initrd /region.cfg region.cfg
+#initrd /storage.cfg storage.cfg
+#initrd /common.cfg common.cfg
+#initrd /postinst.cfg postinst.cfg
+sleep 2
+boot || shell
